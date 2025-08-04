@@ -135,6 +135,7 @@ export interface NavigationProps<T = any> {
 }
 
 export type RootStackParamList = {
+  Splash: undefined;
   Login: undefined;
   Main: undefined;
   MainTabs: undefined;

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc } from 'firebase/firestore';
-import { firestore } from '@/services/firebase';
+import { signOut } from 'firebase/auth';
+import { firestore, auth } from '../services/firebase';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const ProfileScreen = ({ navigation }) => {
@@ -41,6 +42,14 @@ const ProfileScreen = ({ navigation }) => {
     } catch (error) {
       console.log('Error loading user data:', error);
     }
+  };
+
+  const handleSignOut = async () => {
+    // Clear user data immediately
+    await AsyncStorage.removeItem('staff');
+    
+    // Navigate to login
+    navigation.navigate('Login');
   };
 
   if (!user) {
@@ -150,7 +159,7 @@ const ProfileScreen = ({ navigation }) => {
           <Icon name="chevron-right" size={24} color="#9CA3AF" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={handleSignOut}>
           <View style={styles.menuItemLeft}>
             <View style={[styles.menuIcon, { backgroundColor: '#EF444420' }]}>
               <Icon name="logout" size={24} color="#EF4444" />

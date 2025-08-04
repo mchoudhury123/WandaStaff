@@ -5,10 +5,12 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTheme, ActivityIndicator, Text } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '@/components/common/AuthContext';
 import { RootStackParamList, BottomTabParamList } from '@/types';
 
+import SplashScreen from '@/screens/SplashScreen';
 import LoginScreen from '@/screens/LoginScreen';
 import DashboardScreen from '@/screens/DashboardScreen';
 import ScheduleScreen from '@/screens/ScheduleScreen';
@@ -237,12 +239,13 @@ const LoadingScreen: React.FC = () => {
 const AppNavigator: React.FC = () => {
   const [user, setUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+  const [showSplash, setShowSplash] = React.useState(true);
+  const [hasShownSplash, setHasShownSplash] = React.useState(false);
 
   React.useEffect(() => {
     const checkUser = async () => {
       try {
-        const AsyncStorage = await import('@react-native-async-storage/async-storage');
-        const staffData = await AsyncStorage.default.getItem('staff');
+        const staffData = await AsyncStorage.getItem('staff');
         
         console.log('AppNavigator - Checking stored staff data:', staffData ? 'Found' : 'Not found');
         
@@ -268,7 +271,18 @@ const AppNavigator: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  console.log('AppNavigator - User state:', user ? 'Logged in' : 'Not logged in', 'Loading:', loading);
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+    setHasShownSplash(true);
+  };
+
+  console.log('AppNavigator - User state:', user ? 'Logged in' : 'Not logged in', 'Loading:', loading, 'ShowSplash:', showSplash, 'HasShownSplash:', hasShownSplash);
+
+  // Only show splash screen on initial app load, not after login
+  if (showSplash && !hasShownSplash) {
+    console.log('AppNavigator - Showing splash screen');
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
 
   if (loading) {
     console.log('AppNavigator - Showing loading screen');

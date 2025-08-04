@@ -3,96 +3,66 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Alert,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import {
   Card,
   Title,
-  Text,
+  Paragraph,
   Button,
-  Chip,
+  Text,
   useTheme,
-  ActivityIndicator,
   List,
+  Divider,
+  ActivityIndicator,
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationProps, Staff, Payslip } from '@/types';
+
+import { useAuth } from '@/components/common/AuthContext';
+import { NavigationProps, Payslip } from '@/types';
 
 const PayslipsScreen: React.FC<NavigationProps> = ({ navigation }) => {
+  const { user } = useAuth();
   const theme = useTheme();
-  const [user, setUser] = useState<Staff | null>(null);
-  const [loading, setLoading] = useState(false);
+  
   const [payslips, setPayslips] = useState<Payslip[]>([]);
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      loadPayslips();
-    }
-  }, [user]);
-
-  const loadUserData = async () => {
-    try {
-      const staffData = await AsyncStorage.getItem('staff');
-      if (staffData) {
-        const staff = JSON.parse(staffData);
-        setUser(staff);
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  };
+  const [loading, setLoading] = useState(false);
 
   const loadPayslips = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      // Mock payslips data for now
+      // TODO: Implement payslips service
+      // Mock data for now
       const mockPayslips: Payslip[] = [
         {
           id: '1',
           staffId: user.id,
-          month: '2024-03',
-          basicSalary: 2500,
-          allowances: 300,
-          commission: 450,
+          month: '2024-01',
+          basicSalary: 3000,
+          allowances: 500,
+          commission: 200,
           bonus: 100,
-          deductions: 150,
-          totalGross: 3350,
-          totalNet: 3200,
+          deductions: 50,
+          totalGross: 3800,
+          totalNet: 3750,
         },
         {
           id: '2',
           staffId: user.id,
-          month: '2024-02',
-          basicSalary: 2500,
-          allowances: 300,
-          commission: 380,
+          month: '2023-12',
+          basicSalary: 3000,
+          allowances: 500,
+          commission: 150,
           bonus: 0,
-          deductions: 150,
-          totalGross: 3180,
-          totalNet: 3030,
-        },
-        {
-          id: '3',
-          staffId: user.id,
-          month: '2024-01',
-          basicSalary: 2500,
-          allowances: 300,
-          commission: 520,
-          bonus: 200,
-          deductions: 150,
-          totalGross: 3520,
-          totalNet: 3370,
+          deductions: 50,
+          totalGross: 3650,
+          totalNet: 3600,
         },
       ];
-
+      
       setPayslips(mockPayslips);
     } catch (error) {
       console.error('Error loading payslips:', error);
@@ -102,268 +72,274 @@ const PayslipsScreen: React.FC<NavigationProps> = ({ navigation }) => {
     }
   };
 
+  useEffect(() => {
+    loadPayslips();
+  }, [user]);
+
   const formatCurrency = (amount: number) => {
-    return `QAR ${amount.toFixed(2)}`;
+    return `QAR ${amount.toLocaleString()}`;
   };
 
   const formatMonth = (monthStr: string) => {
     const date = new Date(monthStr + '-01');
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+    });
   };
 
-  const downloadPayslip = (payslip: Payslip) => {
+  const handleDownloadPayslip = (payslip: Payslip) => {
     Alert.alert(
       'Download Payslip',
-      `This would download the payslip for ${formatMonth(payslip.month)}`,
+      `Download payslip for ${formatMonth(payslip.month)}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Download', onPress: () => console.log('Downloading payslip...') }
-      ]
-    );
-  };
-
-  const viewPayslipDetails = (payslip: Payslip) => {
-    Alert.alert(
-      `Payslip - ${formatMonth(payslip.month)}`,
-      `Basic Salary: ${formatCurrency(payslip.basicSalary)}\n` +
-      `Allowances: ${formatCurrency(payslip.allowances)}\n` +
-      `Commission: ${formatCurrency(payslip.commission)}\n` +
-      `Bonus: ${formatCurrency(payslip.bonus)}\n` +
-      `Deductions: ${formatCurrency(payslip.deductions)}\n\n` +
-      `Gross Total: ${formatCurrency(payslip.totalGross)}\n` +
-      `Net Pay: ${formatCurrency(payslip.totalNet)}`,
-      [
-        { text: 'Close', style: 'cancel' },
-        { text: 'Download PDF', onPress: () => downloadPayslip(payslip) }
+        {
+          text: 'Download',
+          onPress: () => {
+            // TODO: Implement PDF download
+            Alert.alert('Coming Soon', 'PDF download will be available soon');
+          },
+        },
       ]
     );
   };
 
   if (!user) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
+    return null;
   }
 
+  const latestPayslip = payslips[0];
+
   return (
-    <View style={styles.container}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={loadPayslips} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Current Month Summary */}
-        {payslips.length > 0 && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.sectionTitle}>Latest Payslip</Title>
-              
-              <View style={styles.currentPayslip}>
-                <Text style={styles.currentMonth}>{formatMonth(payslips[0].month)}</Text>
-                <Text style={styles.currentAmount}>{formatCurrency(payslips[0].totalNet)}</Text>
-                <Text style={styles.currentLabel}>Net Pay</Text>
-                
-                <Button
-                  mode="contained"
-                  onPress={() => viewPayslipDetails(payslips[0])}
-                  style={styles.viewButton}
-                  icon="eye"
-                >
-                  View Details
-                </Button>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
-
-        {/* Payslips History */}
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={loading} onRefresh={loadPayslips} />
+      }
+    >
+      {/* Current Month Summary */}
+      {latestPayslip && (
         <Card style={styles.card}>
           <Card.Content>
-            <Title style={styles.sectionTitle}>Payslip History</Title>
+            <Title>Latest Payslip - {formatMonth(latestPayslip.month)}</Title>
             
-            {payslips.length > 0 ? (
-              payslips.map((payslip, index) => (
-                <List.Item
-                  key={payslip.id}
-                  title={formatMonth(payslip.month)}
-                  description={`Net Pay: ${formatCurrency(payslip.totalNet)}`}
-                  left={() => (
-                    <View style={styles.payslipIcon}>
-                      <Icon name="file-document" size={24} color="#8B5CF6" />
-                    </View>
-                  )}
-                  right={() => (
-                    <View style={styles.payslipActions}>
-                      <Text style={styles.grossAmount}>{formatCurrency(payslip.totalGross)}</Text>
-                      <Icon name="chevron-right" size={24} color="#9CA3AF" />
-                    </View>
-                  )}
-                  onPress={() => viewPayslipDetails(payslip)}
-                  style={[styles.payslipItem, index === 0 && styles.latestPayslip]}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Icon name="file-document-outline" size={48} color="#94A3B8" />
-                <Text style={styles.emptyText}>No payslips available</Text>
-                <Text style={styles.emptySubtext}>Your payslips will appear here once generated</Text>
+            <View style={styles.summaryContainer}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Gross Salary</Text>
+                <Text style={styles.summaryValue}>
+                  {formatCurrency(latestPayslip.totalGross)}
+                </Text>
               </View>
-            )}
-          </Card.Content>
-        </Card>
-
-        {/* Notice */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.noticeContainer}>
-              <Icon name="information" size={24} color="#3B82F6" />
-              <View style={styles.noticeText}>
-                <Text style={styles.noticeTitle}>Payslips Information</Text>
-                <Text style={styles.noticeDescription}>
-                  Payslips are generated monthly and available for download in PDF format. 
-                  Contact HR if you have any questions about your payslip.
+              
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Deductions</Text>
+                <Text style={[styles.summaryValue, { color: theme.colors.error }]}>
+                  -{formatCurrency(latestPayslip.deductions)}
+                </Text>
+              </View>
+              
+              <Divider style={styles.divider} />
+              
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, styles.totalLabel]}>Net Salary</Text>
+                <Text style={[styles.summaryValue, styles.totalValue, { color: theme.colors.primary }]}>
+                  {formatCurrency(latestPayslip.totalNet)}
                 </Text>
               </View>
             </View>
+
+            <Button
+              mode="outlined"
+              onPress={() => handleDownloadPayslip(latestPayslip)}
+              style={styles.downloadButton}
+              icon="download"
+            >
+              Download PDF
+            </Button>
           </Card.Content>
         </Card>
-      </ScrollView>
-    </View>
+      )}
+
+      {/* Salary Breakdown */}
+      {latestPayslip && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title>Salary Breakdown</Title>
+            
+            <List.Item
+              title="Basic Salary"
+              right={() => <Text style={styles.amountText}>{formatCurrency(latestPayslip.basicSalary)}</Text>}
+              left={() => <List.Icon icon="cash" />}
+            />
+            <Divider />
+            
+            <List.Item
+              title="Allowances"
+              right={() => <Text style={styles.amountText}>{formatCurrency(latestPayslip.allowances)}</Text>}
+              left={() => <List.Icon icon="plus-circle-outline" />}
+            />
+            <Divider />
+            
+            <List.Item
+              title="Commission"
+              right={() => <Text style={styles.amountText}>{formatCurrency(latestPayslip.commission)}</Text>}
+              left={() => <List.Icon icon="chart-line" />}
+            />
+            <Divider />
+            
+            <List.Item
+              title="Bonus"
+              right={() => <Text style={styles.amountText}>{formatCurrency(latestPayslip.bonus)}</Text>}
+              left={() => <List.Icon icon="gift" />}
+            />
+            <Divider />
+            
+            <List.Item
+              title="Deductions"
+              right={() => <Text style={[styles.amountText, { color: theme.colors.error }]}>-{formatCurrency(latestPayslip.deductions)}</Text>}
+              left={() => <List.Icon icon="minus-circle-outline" color={theme.colors.error} />}
+            />
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Payslip History */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>Payslip History</Title>
+          {payslips.length > 0 ? (
+            payslips.map((payslip, index) => (
+              <View key={payslip.id}>
+                <List.Item
+                  title={formatMonth(payslip.month)}
+                  description={`Net: ${formatCurrency(payslip.totalNet)}`}
+                  left={() => <List.Icon icon="file-document" />}
+                  right={() => (
+                    <Button
+                      mode="text"
+                      onPress={() => handleDownloadPayslip(payslip)}
+                      compact
+                    >
+                      Download
+                    </Button>
+                  )}
+                />
+                {index < payslips.length - 1 && <Divider />}
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noData}>No payslips available</Text>
+          )}
+        </Card.Content>
+      </Card>
+
+      {/* Salary Info */}
+      {user.salary && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title>Salary Information</Title>
+            <Paragraph style={styles.description}>
+              Your current salary structure
+            </Paragraph>
+            
+            <List.Item
+              title="Basic Salary"
+              right={() => <Text style={styles.amountText}>{formatCurrency(user.salary?.basicSalary || 0)}</Text>}
+            />
+            <Divider />
+            
+            <List.Item
+              title="Housing Allowance"
+              right={() => <Text style={styles.amountText}>{formatCurrency(user.salary?.housing || 0)}</Text>}
+            />
+            <Divider />
+            
+            <List.Item
+              title="Transportation"
+              right={() => <Text style={styles.amountText}>{formatCurrency(user.salary?.transportation || 0)}</Text>}
+            />
+            <Divider />
+            
+            <List.Item
+              title="Other Allowances"
+              right={() => <Text style={styles.amountText}>{formatCurrency(user.salary?.allowance || 0)}</Text>}
+            />
+          </Card.Content>
+        </Card>
+      )}
+
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" />
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748B',
+    backgroundColor: '#f5f5f5',
+    padding: 16,
   },
   card: {
-    margin: 16,
+    marginBottom: 16,
     elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 16,
+  summaryContainer: {
+    marginTop: 16,
   },
-
-  // Current Payslip
-  currentPayslip: {
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 20,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-  },
-  currentMonth: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  currentAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#10B981',
-    marginBottom: 4,
-  },
-  currentLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 16,
-  },
-  viewButton: {
-    marginTop: 8,
-  },
-
-  // Payslip List
-  payslipItem: {
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-    borderRadius: 8,
     paddingVertical: 8,
   },
-  latestPayslip: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#10B981',
-  },
-  payslipIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#8B5CF620',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-  },
-  payslipActions: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  grossAmount: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-
-  // Empty State
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptyText: {
+  summaryLabel: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#64748B',
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  divider: {
+    marginVertical: 8,
+  },
+  downloadButton: {
     marginTop: 16,
-    marginBottom: 4,
   },
-  emptySubtext: {
+  amountText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  description: {
+    opacity: 0.7,
+    marginBottom: 8,
+  },
+  noData: {
     textAlign: 'center',
+    opacity: 0.7,
+    marginTop: 16,
   },
-
-  // Notice
-  noticeContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-  },
-  noticeText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  noticeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E40AF',
-    marginBottom: 4,
-  },
-  noticeDescription: {
-    fontSize: 12,
-    color: '#1E40AF',
-    lineHeight: 16,
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
