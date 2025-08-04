@@ -1,32 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  RefreshControl,
-} from 'react-native';
-import {
-  Card,
-  Title,
-  Text,
-  Button,
-  Chip,
-  useTheme,
-  ActivityIndicator,
-} from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, Alert, RefreshControl, StyleSheet } from 'react-native';
+import { Card, Title, Text, Button, Chip, ActivityIndicator } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore';
-import { firestore } from '@/services/firebase';
-import { NavigationProps, HolidayRequest, Staff } from '@/types';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { firestore } from '../services/firebase';
+import { NavigationProps, Staff, HolidayRequest } from '../types';
 
 const AnnualLeaveScreen: React.FC<NavigationProps> = ({ navigation }) => {
-  const theme = useTheme();
   const [user, setUser] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [leaveBalance, setLeaveBalance] = useState({ allowance: 0, used: 0, remaining: 0 });
+  const [leaveBalance, setLeaveBalance] = useState({ allowance: 25, used: 0, remaining: 25 });
   const [holidayRequests, setHolidayRequests] = useState<HolidayRequest[]>([]);
 
   useEffect(() => {
@@ -39,14 +24,12 @@ const AnnualLeaveScreen: React.FC<NavigationProps> = ({ navigation }) => {
     }
   }, [user]);
 
-  // Refresh data when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation?.addListener('focus', () => {
       if (user) {
         loadLeaveData();
       }
     });
-
     return unsubscribe;
   }, [navigation, user]);
 
@@ -67,12 +50,8 @@ const AnnualLeaveScreen: React.FC<NavigationProps> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // Get staff data including annual leave allowance
-      const staffDoc = await getDoc(doc(firestore, 'staff', user.id));
-      const staffData = staffDoc.exists() ? staffDoc.data() : null;
-      const allowance = staffData?.annualLeaveAllowance || 25; // Default 25 days
+      const allowance = 25; // Default 25 days
 
-      // Get all holiday requests for this user
       const requestsQuery = query(
         collection(firestore, 'holidayRequests'),
         where('staffId', '==', user.id)
@@ -84,7 +63,6 @@ const AnnualLeaveScreen: React.FC<NavigationProps> = ({ navigation }) => {
         ...doc.data()
       })) as HolidayRequest[];
 
-      // Calculate used days (approved requests)
       const currentYear = new Date().getFullYear().toString();
       const usedDays = requests
         .filter(req => 
@@ -117,41 +95,6 @@ const AnnualLeaveScreen: React.FC<NavigationProps> = ({ navigation }) => {
       allowance: leaveBalance.allowance,
       used: leaveBalance.used
     });
-  };
-
-  const submitDemoRequest = async () => {
-    if (!user) return;
-
-    setSubmitting(true);
-    try {
-      // Create a demo holiday request
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() + 7); // 7 days from now
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 4); // 5 day holiday
-
-      const holidayRequest: Omit<HolidayRequest, 'id'> = {
-        staffId: user.id,
-        staffName: `${user.firstName} ${user.lastName}`,
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
-        days: 5,
-        reason: 'Annual holiday',
-        status: 'pending',
-        requestedAt: new Date().toISOString()
-      };
-
-      await addDoc(collection(firestore, 'holidayRequests'), holidayRequest);
-      
-      Alert.alert('Success', 'Holiday request submitted successfully!');
-      loadLeaveData(); // Refresh data
-      
-    } catch (error) {
-      console.error('Error submitting request:', error);
-      Alert.alert('Error', 'Failed to submit holiday request');
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -377,11 +320,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 16,
     marginBottom: 4,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    textAlign: 'center',
   },
 });
 

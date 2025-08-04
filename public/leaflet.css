@@ -1,0 +1,8 @@
+/* Leaflet CSS for web maps */
+@import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+
+.leaflet-container {
+  height: 250px;
+  width: 100%;
+  border-radius: 12px;
+}

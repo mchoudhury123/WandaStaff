@@ -1,25 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  TouchableOpacity,
-} from 'react-native';
-import {
-  Card,
-  Title,
-  Text,
-  Button,
-  TextInput,
-  useTheme,
-  Chip,
-} from 'react-native-paper';
+import { View, ScrollView, Alert, TouchableOpacity, StyleSheet } from 'react-native';
+import { Card, Title, Text, Button, TextInput, Chip, useTheme } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { collection, addDoc } from 'firebase/firestore';
-import { firestore } from '@/services/firebase';
-import { NavigationProps, Staff, HolidayRequest } from '@/types';
+import { firestore } from '../services/firebase';
+import { NavigationProps, Staff, HolidayRequest } from '../types';
 
 const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) => {
   const theme = useTheme();
@@ -31,8 +17,7 @@ const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) =>
   const [reason, setReason] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
-  // Get leave balance from navigation params
-  const leaveBalance = route?.params || { remainingDays: 0, allowance: 25, used: 0 };
+  const balance = route?.params || { total: 25, used: 0, remaining: 25 };
 
   useEffect(() => {
     loadUserData();
@@ -42,11 +27,10 @@ const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) =>
     try {
       const staffData = await AsyncStorage.getItem('staff');
       if (staffData) {
-        const staff = JSON.parse(staffData);
-        setUser(staff);
+        setUser(JSON.parse(staffData));
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('Error loading user:', error);
     }
   };
 
@@ -54,16 +38,12 @@ const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) =>
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     
-    // First day of the month
     const firstDay = new Date(year, month, 1);
-    // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
     
-    // Start from Sunday of the week containing the first day
     const startDate = new Date(firstDay);
     startDate.setDate(firstDay.getDate() - firstDay.getDay());
     
-    // End on Saturday of the week containing the last day
     const endDate = new Date(lastDay);
     endDate.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
     
@@ -109,14 +89,11 @@ const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) =>
     if (isPastDate(date) || !isCurrentMonth(date)) return;
 
     if (!startDate) {
-      // First date selection
       setStartDate(date);
       setEndDate(null);
       setSelectedDates([date]);
     } else if (!endDate) {
-      // Second date selection
       if (date < startDate) {
-        // If second date is before first, swap them
         setEndDate(startDate);
         setStartDate(date);
         setSelectedDates(getDateRange(date, startDate));
@@ -125,7 +102,6 @@ const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) =>
         setSelectedDates(getDateRange(startDate, date));
       }
     } else {
-      // Reset selection
       setStartDate(date);
       setEndDate(null);
       setSelectedDates([date]);
@@ -157,14 +133,17 @@ const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) =>
   };
 
   const calculateWorkdays = (dates: Date[]): number => {
-    // Filter out weekends (Saturday = 6, Sunday = 0)
     return dates.filter(date => {
       const day = date.getDay();
       return day !== 0 && day !== 6;
     }).length;
   };
 
-  const checkBalanceAndSubmit = () => {
+  const calculateDays = () => {
+    return calculateWorkdays(selectedDates);
+  };
+
+  const submitRequest = async () => {
     if (!user || selectedDates.length === 0 || !reason.trim()) {
       Alert.alert('Error', 'Please select dates and provide a reason for your leave request.');
       return;
@@ -176,293 +155,252 @@ const RequestLeaveScreen: React.FC<NavigationProps> = ({ navigation, route }) =>
     }
 
     const workdays = calculateWorkdays(selectedDates);
-    
-    // Check if requesting more days than available
-    if (workdays > leaveBalance.remainingDays) {
-      Alert.alert(
-        'Insufficient Leave Balance',
-        `You are requesting ${workdays} working days but only have ${leaveBalance.remainingDays} days remaining.\n\nThis request will likely be denied due to insufficient balance.`,
-        [
-          { 
-            text: 'Edit Dates', 
-            style: 'cancel',
-            onPress: () => {
-              // Do nothing, let user edit dates
-            }
-          },
-          { 
-            text: 'Submit Anyway', 
-            style: 'destructive',
-            onPress: () => submitRequest()
-          }
-        ]
-      );
-    } else {
-      // Sufficient balance, submit directly
-      submitRequest();
+    if (workdays === 0) {
+      Alert.alert('Error', 'Please select valid working days (weekdays only).');
+      return;
     }
-  };
 
-  const submitRequest = async () => {
     setSubmitting(true);
     try {
-      const workdays = calculateWorkdays(selectedDates);
-      
       const holidayRequest: Omit<HolidayRequest, 'id'> = {
-        staffId: user!.id,
-        staffName: `${user!.firstName} ${user!.lastName}`,
-        startDate: startDate!.toISOString().split('T')[0],
-        endDate: endDate!.toISOString().split('T')[0],
+        staffId: user.id,
+        staffName: `${user.firstName} ${user.lastName}`,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
         days: workdays,
         reason: reason.trim(),
         status: 'pending',
         requestedAt: new Date().toISOString()
       };
-
+      
       await addDoc(collection(firestore, 'holidayRequests'), holidayRequest);
       
-      // Show confirmation popup
       Alert.alert(
-        'Holiday Request Submitted',
-        `Your annual leave request for ${workdays} working days from ${startDate!.toLocaleDateString()} to ${endDate!.toLocaleDateString()} has been successfully submitted and is now pending approval.`,
+        'Request Submitted',
+        `Your leave request for ${workdays} working days from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()} has been submitted successfully.`,
         [
           {
-            text: 'OK',
-            onPress: () => {
-              // Navigate back to Annual Leave screen
-              navigation?.goBack();
-            }
+            text: 'View My Requests',
+            onPress: () => navigation?.goBack()
           }
         ]
       );
       
     } catch (error) {
       console.error('Error submitting request:', error);
-      Alert.alert('Error', 'Failed to submit holiday request. Please try again.');
+      Alert.alert('Error', 'Failed to submit request. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (!user) {
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
   }
 
-  const monthDays = getMonthDays();
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const workdays = calculateWorkdays(selectedDates);
-
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Selection Summary */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title style={styles.sectionTitle}>Selection Summary</Title>
-          
-          {selectedDates.length > 0 ? (
-            <View style={styles.summaryContainer}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Dates Selected:</Text>
-                <Text style={styles.summaryValue}>
-                  {startDate?.toLocaleDateString()} - {endDate?.toLocaleDateString()}
-                </Text>
-              </View>
-              
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Days:</Text>
-                <Text style={styles.summaryValue}>{selectedDates.length} days</Text>
-              </View>
-              
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Working Days:</Text>
-                <Text style={[styles.summaryValue, { color: '#10B981', fontWeight: 'bold' }]}>
-                  {workdays} days
-                </Text>
-              </View>
-              
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Days Remaining:</Text>
-                <Text style={[styles.summaryValue, { 
-                  color: workdays > leaveBalance.remainingDays ? '#EF4444' : '#10B981',
-                  fontWeight: 'bold' 
-                }]}>
-                  {leaveBalance.remainingDays} days
-                </Text>
-              </View>
-              
-              {workdays > leaveBalance.remainingDays && (
-                <View style={styles.warningContainer}>
-                  <Icon name="alert" size={16} color="#EF4444" />
-                  <Text style={styles.warningText}>
-                    Requesting more days than available. Request may be denied.
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Balance Summary */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title>Leave Balance</Title>
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceText}>Remaining: {balance.remaining} days</Text>
+              <Text style={styles.balanceText}>Used: {balance.used}/{balance.total}</Text>
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Selection Summary */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title>Selection Summary</Title>
+            
+            {selectedDates.length > 0 ? (
+              <View style={styles.summaryContainer}>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Dates Selected:</Text>
+                  <Text style={styles.summaryValue}>
+                    {startDate?.toLocaleDateString()} - {endDate?.toLocaleDateString()}
                   </Text>
                 </View>
-              )}
-              
-              <Button
-                mode="outlined"
-                onPress={clearSelection}
-                style={styles.clearButton}
-                compact
-              >
-                Clear Selection
-              </Button>
-            </View>
-          ) : (
-            <View style={styles.emptySelection}>
-              <Icon name="calendar-remove" size={32} color="#94A3B8" />
-              <Text style={styles.emptyText}>Select your leave dates below</Text>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Calendar */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.calendarHeader}>
-            <TouchableOpacity onPress={() => navigateMonth('prev')}>
-              <Icon name="chevron-left" size={24} color={theme.colors.primary} />
-            </TouchableOpacity>
-            
-            <Text style={styles.monthTitle}>
-              {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </Text>
-            
-            <TouchableOpacity onPress={() => navigateMonth('next')}>
-              <Icon name="chevron-right" size={24} color={theme.colors.primary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Day Names Header */}
-          <View style={styles.dayNamesHeader}>
-            {dayNames.map((dayName, index) => (
-              <Text key={index} style={styles.dayNameHeader}>
-                {dayName}
-              </Text>
-            ))}
-          </View>
-          
-          {/* Calendar Grid */}
-          <View style={styles.calendarGrid}>
-            {Array.from({ length: Math.ceil(monthDays.length / 7) }, (_, weekIndex) => (
-              <View key={weekIndex} style={styles.calendarWeekRow}>
-                {monthDays.slice(weekIndex * 7, weekIndex * 7 + 7).map((date, dayIndex) => {
-                  const today = isToday(date);
-                  const currentMonthDay = isCurrentMonth(date);
-                  const pastDate = isPastDate(date);
-                  const selected = isSelectedDate(date);
-                  const inRange = isInSelectedRange(date);
-                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                  
-                  return (
-                    <TouchableOpacity 
-                      key={dayIndex} 
-                      style={[
-                        styles.calendarDay,
-                        !currentMonthDay && styles.otherMonthDay,
-                        pastDate && styles.pastDay,
-                      ]}
-                      onPress={() => handleDatePress(date)}
-                      disabled={pastDate || !currentMonthDay}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[
-                        styles.dayNumber,
-                        today && styles.todayCircle,
-                        selected && styles.selectedCircle,
-                        inRange && !selected && styles.rangeCircle,
-                      ]}>
-                        <Text style={[
-                          styles.dayNumberText,
-                          today && styles.todayText,
-                          selected && styles.selectedText,
-                          inRange && !selected && styles.rangeText,
-                          !currentMonthDay && styles.otherMonthText,
-                          pastDate && styles.pastText,
-                          isWeekend && currentMonthDay && !pastDate && styles.weekendText,
-                        ]}>
-                          {date.getDate()}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.legend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: '#10B981' }]} />
-              <Text style={styles.legendText}>Selected</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: '#8B5CF620' }]} />
-              <Text style={styles.legendText}>In Range</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: '#EF4444' }]} />
-              <Text style={styles.legendText}>Today</Text>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
-
-      {/* Reason Input */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title style={styles.sectionTitle}>Reason for Leave</Title>
-          
-          <TextInput
-            mode="outlined"
-            label="Reason"
-            value={reason}
-            onChangeText={setReason}
-            placeholder="e.g., Annual holiday, Personal matters, Family visit..."
-            multiline
-            numberOfLines={3}
-            style={styles.reasonInput}
-          />
-          
-          <View style={styles.reasonChips}>
-            <Text style={styles.chipLabel}>Quick reasons:</Text>
-            <View style={styles.chipRow}>
-              {['Annual holiday', 'Personal matters', 'Family visit', 'Medical'].map((quickReason) => (
-                <Chip
-                  key={quickReason}
+                
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Total Days:</Text>
+                  <Text style={styles.summaryValue}>{selectedDates.length} days</Text>
+                </View>
+                
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Working Days:</Text>
+                  <Text style={[styles.summaryValue, { color: '#10B981', fontWeight: 'bold' }]}>
+                    {calculateWorkdays(selectedDates)} days
+                  </Text>
+                </View>
+                
+                <Button
                   mode="outlined"
-                  onPress={() => setReason(quickReason)}
-                  style={styles.reasonChip}
+                  onPress={clearSelection}
+                  style={styles.clearButton}
+                  compact
                 >
-                  {quickReason}
-                </Chip>
+                  Clear Selection
+                </Button>
+              </View>
+            ) : (
+              <View style={styles.emptySelection}>
+                <Icon name="calendar-remove" size={32} color="#94A3B8" />
+                <Text style={styles.emptyText}>Select your leave dates below</Text>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+
+        {/* Calendar */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <View style={styles.calendarHeader}>
+              <TouchableOpacity onPress={() => navigateMonth('prev')}>
+                <Icon name="chevron-left" size={24} color={theme.colors.primary} />
+              </TouchableOpacity>
+              
+              <Text style={styles.monthTitle}>
+                {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </Text>
+              
+              <TouchableOpacity onPress={() => navigateMonth('next')}>
+                <Icon name="chevron-right" size={24} color={theme.colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Day Names Header */}
+            <View style={styles.dayNamesHeader}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, index) => (
+                <Text key={index} style={styles.dayNameHeader}>
+                  {dayName}
+                </Text>
               ))}
             </View>
-          </View>
-        </Card.Content>
-      </Card>
+            
+            {/* Calendar Grid */}
+            <View style={styles.calendarGrid}>
+              {Array.from({ length: Math.ceil(getMonthDays().length / 7) }, (_, weekIndex) => (
+                <View key={weekIndex} style={styles.calendarWeekRow}>
+                  {getMonthDays().slice(weekIndex * 7, weekIndex * 7 + 7).map((date, dayIndex) => {
+                    const today = isToday(date);
+                    const currentMonthDay = isCurrentMonth(date);
+                    const pastDate = isPastDate(date);
+                    const selected = isSelectedDate(date);
+                    const inRange = isInSelectedRange(date);
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                    
+                    return (
+                      <TouchableOpacity 
+                        key={dayIndex} 
+                        style={[
+                          styles.calendarDay,
+                          !currentMonthDay && styles.otherMonthDay,
+                          pastDate && styles.pastDay,
+                        ]}
+                        onPress={() => handleDatePress(date)}
+                        disabled={pastDate || !currentMonthDay}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[
+                          styles.dayNumber,
+                          today && styles.todayCircle,
+                          selected && styles.selectedCircle,
+                          inRange && !selected && styles.rangeCircle,
+                        ]}>
+                          <Text style={[
+                            styles.dayNumberText,
+                            today && styles.todayText,
+                            selected && styles.selectedText,
+                            inRange && !selected && styles.rangeText,
+                            !currentMonthDay && styles.otherMonthText,
+                            pastDate && styles.pastText,
+                            isWeekend && currentMonthDay && !pastDate && styles.weekendText,
+                          ]}>
+                            {date.getDate()}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
 
-      {/* Submit Button */}
-      <View style={styles.submitContainer}>
-        <Button
-          mode="contained"
-          onPress={checkBalanceAndSubmit}
-          loading={submitting}
-          disabled={submitting || selectedDates.length === 0 || !reason.trim()}
-          style={[
-            styles.submitButton,
-            workdays > leaveBalance.remainingDays && styles.warningButton
-          ]}
-          icon="send"
-        >
-          {workdays > leaveBalance.remainingDays 
-            ? `Submit Request (${workdays - leaveBalance.remainingDays} days over limit)`
-            : 'Submit Leave Request'
-          }
-        </Button>
-      </View>
-    </ScrollView>
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: '#10B981' }]} />
+                <Text style={styles.legendText}>Selected</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: '#8B5CF620' }]} />
+                <Text style={styles.legendText}>In Range</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: '#EF4444' }]} />
+                <Text style={styles.legendText}>Today</Text>
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Reason */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Title>Reason for Leave</Title>
+            
+            <TextInput
+              mode="outlined"
+              label="Reason"
+              value={reason}
+              onChangeText={setReason}
+              placeholder="e.g., Annual holiday, Personal matters..."
+              multiline
+              numberOfLines={3}
+              style={styles.input}
+            />
+            
+            <View style={styles.quickReasons}>
+              <Text style={styles.quickReasonsLabel}>Quick reasons:</Text>
+              <View style={styles.chipRow}>
+                {['Annual holiday', 'Personal matters', 'Family visit', 'Medical'].map((quickReason) => (
+                  <Chip
+                    key={quickReason}
+                    mode="outlined"
+                    onPress={() => setReason(quickReason)}
+                    style={styles.chip}
+                  >
+                    {quickReason}
+                  </Chip>
+                ))}
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Submit */}
+        <View style={styles.submitContainer}>
+          <Button
+            mode="contained"
+            onPress={submitRequest}
+            loading={submitting}
+            disabled={submitting || selectedDates.length === 0 || !reason.trim()}
+            style={styles.submitButton}
+            icon="send"
+          >
+            Submit Request
+          </Button>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -471,17 +409,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
   card: {
     margin: 16,
     elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E293B',
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  balanceText: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  input: {
     marginBottom: 16,
   },
-
+  
   // Summary
   summaryContainer: {
     backgroundColor: '#F0FDF4',
@@ -507,22 +457,6 @@ const styles = StyleSheet.create({
   clearButton: {
     marginTop: 8,
     alignSelf: 'flex-start',
-  },
-  warningContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EF4444',
-  },
-  warningText: {
-    fontSize: 12,
-    color: '#EF4444',
-    marginLeft: 6,
-    flex: 1,
   },
   emptySelection: {
     alignItems: 'center',
@@ -644,15 +578,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
   },
-
-  // Reason
-  reasonInput: {
-    marginBottom: 16,
+  quickReasons: {
+    marginTop: 16,
   },
-  reasonChips: {
-    marginTop: 8,
-  },
-  chipLabel: {
+  quickReasonsLabel: {
     fontSize: 14,
     color: '#64748B',
     marginBottom: 8,
@@ -662,20 +591,15 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
-  reasonChip: {
+  chip: {
     marginBottom: 8,
   },
-
-  // Submit
   submitContainer: {
     margin: 16,
     marginBottom: 32,
   },
   submitButton: {
     paddingVertical: 8,
-  },
-  warningButton: {
-    backgroundColor: '#F59E0B',
   },
 });
 

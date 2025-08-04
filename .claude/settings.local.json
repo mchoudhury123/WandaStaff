@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm update)",
+      "Bash(npm run web:*)",
+      "Bash(npx expo start:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(start http://localhost:19006)",
+      "Bash(cmd /c start http://localhost:19006)",
+      "Bash(npx expo install:*)",
+      "Bash(set EXPO_WEBPACK_PORT=19010)",
+      "Bash(npx:*)",
+      "Bash(\"taskkill\" \"/F\" \"/PID\" \"11728\")",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
