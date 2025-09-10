@@ -2,7 +2,9 @@ import { firestore } from './firebase';
 import { doc, getDoc, collection, addDoc, query, where, orderBy, limit, getDocs, Timestamp, updateDoc, setDoc } from 'firebase/firestore';
 import { ClockRecord, Staff, Business } from '@/types';
 import { Platform } from 'react-native';
+import { AppConstants } from '../config/Constants';
 import { CRMSyncService } from './crmSyncService';
+import { FeatureFlagsService } from './featureFlagsService';
 
 // Only import Location on mobile platforms
 let Location: any = null;
@@ -151,12 +153,18 @@ export class ClockService {
         business.location.lng
       );
 
-      // For testing: always allow clock in regardless of distance
-      // TODO: Re-enable distance check for production
-      // if (distance > 500) {
-      //   throw new Error(`You are ${Math.round(distance)}m away from the business. You must be within 500m to clock in.`);
-      // }
-      console.log(`Testing mode: Distance is ${Math.round(distance)}m - allowing clock in anyway`);
+      // Check if user is within allowed radius (if enforcement is enabled)
+      const featureFlags = await FeatureFlagsService.getFeatureFlagsWithFallback(staff.businessId);
+      
+      if (featureFlags.enforceClockDistance && distance > AppConstants.business.defaultClockRadiusMeters) {
+        throw new Error(`You are ${Math.round(distance)}m away from the business. You must be within ${AppConstants.business.defaultClockRadiusMeters}m to clock in.`);
+      }
+      
+      if (featureFlags.enforceClockDistance) {
+        console.log(`Distance is ${Math.round(distance)}m - within allowed radius of ${AppConstants.business.defaultClockRadiusMeters}m`);
+      } else {
+        console.log(`Distance is ${Math.round(distance)}m - enforcement disabled, allowing clock in`);
+      }
 
       // Get address
       const address = await this.reverseGeocode(currentLocation.lat, currentLocation.lng);
@@ -243,12 +251,18 @@ export class ClockService {
         business.location.lng
       );
 
-      // For testing: always allow clock out regardless of distance
-      // TODO: Re-enable distance check for production
-      // if (distance > 500) {
-      //   throw new Error(`You are ${Math.round(distance)}m away from the business. You must be within 500m to clock out.`);
-      // }
-      console.log(`Testing mode: Distance is ${Math.round(distance)}m - allowing clock out anyway`);
+      // Check if user is within allowed radius (if enforcement is enabled)
+      const featureFlags = await FeatureFlagsService.getFeatureFlagsWithFallback(staff.businessId);
+      
+      if (featureFlags.enforceClockDistance && distance > AppConstants.business.defaultClockRadiusMeters) {
+        throw new Error(`You are ${Math.round(distance)}m away from the business. You must be within ${AppConstants.business.defaultClockRadiusMeters}m to clock out.`);
+      }
+      
+      if (featureFlags.enforceClockDistance) {
+        console.log(`Distance is ${Math.round(distance)}m - within allowed radius of ${AppConstants.business.defaultClockRadiusMeters}m`);
+      } else {
+        console.log(`Distance is ${Math.round(distance)}m - enforcement disabled, allowing clock out`);
+      }
 
       // Get address
       const address = await this.reverseGeocode(currentLocation.lat, currentLocation.lng);

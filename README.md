@@ -156,19 +156,41 @@ The app expects the following Firestore collections:
 ## Configuration
 
 ### Environment Variables
-Create a `.env` file in the root directory:
+The app now uses `app.config.ts` for environment-aware builds. See `ENVIRONMENT-SETUP.md` for detailed configuration.
+
+**Quick Setup:**
+```bash
+# Interactive environment setup
+npm run env:setup staging
+
+# Or manual setup
+cp .env.staging .env
+# Edit .env with your Firebase credentials
+```
+
+**Environment Variables:**
 ```
 FIREBASE_API_KEY=your_api_key
 FIREBASE_AUTH_DOMAIN=your_auth_domain
 FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=123456789
+FIREBASE_APP_ID=your_app_id
+APP_NAME=WandaStaff
+APP_VERSION=1.0.0
+ENVIRONMENT=staging
+DEFAULT_CLOCK_RADIUS_METERS=500
+HOLIDAY_ALLOWANCE_DAYS=21
 ```
 
-### Push Notifications
+### Firebase Configuration Files
 1. Configure Firebase Cloud Messaging in your Firebase console
 2. Add your Android/iOS app to the Firebase project
-3. Download and place configuration files:
-   - `google-services.json` for Android (in `android/app/`)
-   - `GoogleService-Info.plist` for iOS (in `ios/`)
+3. Download and place configuration files in project root:
+   - `google-services.json` for Android
+   - `GoogleService-Info.plist` for iOS
+
+**Note:** The app now uses `app.config.ts` which automatically references these files.
 
 ## Building for Production
 

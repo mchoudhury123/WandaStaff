@@ -21,11 +21,12 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { useAuth } from '@/components/common/AuthContext';
 import { NavigationProps, Payslip } from '@/types';
+import { useFeatureFlags } from '@/providers/FeatureFlagsProvider';
 
 const PayslipsScreen: React.FC<NavigationProps> = ({ navigation }) => {
   const { user } = useAuth();
   const theme = useTheme();
-  
+  const { flags, loading: flagsLoading } = useFeatureFlags();
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -89,20 +90,18 @@ const PayslipsScreen: React.FC<NavigationProps> = ({ navigation }) => {
   };
 
   const handleDownloadPayslip = (payslip: Payslip) => {
-    Alert.alert(
-      'Download Payslip',
-      `Download payslip for ${formatMonth(payslip.month)}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Download',
-          onPress: () => {
-            // TODO: Implement PDF download
-            Alert.alert('Coming Soon', 'PDF download will be available soon');
-          },
-        },
-      ]
-    );
+    if (flags.enablePayslipPDF) {
+      Alert.alert(
+        'Download Payslip',
+        `Download payslip for ${formatMonth(payslip.month)}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Download', onPress: () => console.log('Downloading payslip...') }
+        ]
+      );
+    } else {
+      Alert.alert('Feature Disabled', 'PDF download is currently disabled for your business.');
+    }
   };
 
   if (!user) {

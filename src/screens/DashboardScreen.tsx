@@ -5,6 +5,7 @@ import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from '
 import { firestore } from '@/services/firebase';
 import { ClockService } from '@/services/clockService';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { AppConstants } from '../config/Constants';
 
 const { width } = Dimensions.get('window');
 
@@ -137,7 +138,7 @@ const DashboardScreen = ({ navigation }) => {
       
       // User can only be shown as clocked in if:
       // 1. They are actually clocked in according to records
-      // 2. They are within 500m radius of business location
+      // 2. They are within configured radius of business location
       const canShowAsClocked = userClockStatus.status === 'clocked-in' && locationCheck.canShowClockedIn;
       
       setClockStatus({

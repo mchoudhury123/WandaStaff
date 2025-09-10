@@ -65,3 +65,13 @@ GoogleService-Info.plist
 # Temporary files
 tmp/
 temp/nul
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Firebase configuration files
+google-services.json
+GoogleService-Info.plist
+app.json.backup

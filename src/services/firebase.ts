@@ -2,15 +2,24 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppConstants, validateConfig, logConfig } from '../config/Constants';
 
-// Firebase configuration for Nail-salon-crm project
+// Validate configuration before initializing Firebase
+const configValidation = validateConfig();
+if (!configValidation.isValid) {
+  console.error('❌ Firebase configuration validation failed:');
+  configValidation.errors.forEach(error => console.error(`   - ${error}`));
+  throw new Error('Invalid Firebase configuration. Please check your environment variables.');
+}
+
+// Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyAgFCCTja8jE8FgUJuPCm9jDV5z93pq55k",
-  authDomain: "nail-salon-crm.firebaseapp.com",
-  projectId: "nail-salon-crm",
-  storageBucket: "nail-salon-crm.appspot.com",
-  messagingSenderId: "1084934404328",
-  appId: "1:1084934404328:web:17b0800ae64bc69ca3b15d"
+  apiKey: AppConstants.firebase.apiKey,
+  authDomain: AppConstants.firebase.authDomain,
+  projectId: AppConstants.firebase.projectId,
+  storageBucket: AppConstants.firebase.storageBucket,
+  messagingSenderId: AppConstants.firebase.messagingSenderId,
+  appId: AppConstants.firebase.appId,
 };
 
 // Initialize Firebase
@@ -39,11 +48,15 @@ try {
 // Initialize Firestore
 const firestore = getFirestore(app);
 
+// Log configuration in development
+logConfig();
+
 // Test Firebase connection
 console.log('Firebase initialized with:');
 console.log('- Project ID:', firebaseConfig.projectId);
 console.log('- Auth Domain:', firebaseConfig.authDomain);
 console.log('- App ID:', firebaseConfig.appId);
+console.log('- Environment:', AppConstants.app.environment);
 
 // Export Firebase services
 export { auth, firestore };

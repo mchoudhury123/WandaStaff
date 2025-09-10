@@ -1,5 +1,6 @@
 import { firestore } from './firebase';
 import { HolidayRequest } from '@/types';
+import { AppConstants } from '../config/Constants';
 
 export class HolidayService {
   static async submitHolidayRequest(request: Omit<HolidayRequest, 'id'>): Promise<void> {
@@ -45,8 +46,8 @@ export class HolidayService {
 
   static async getHolidayAllowance(staffId: string): Promise<{ total: number; used: number; remaining: number }> {
     try {
-      // Base allowance is typically 21 days per year
-      const baseAllowance = 21;
+      // Get base allowance from environment configuration
+      const baseAllowance = AppConstants.business.holidayAllowanceDays;
       const currentYear = new Date().getFullYear();
 
       // Get approved holidays for current year
@@ -78,7 +79,7 @@ export class HolidayService {
       };
     } catch (error) {
       console.error('Error calculating holiday allowance:', error);
-      return { total: 21, used: 0, remaining: 21 };
+      return { total: AppConstants.business.holidayAllowanceDays, used: 0, remaining: AppConstants.business.holidayAllowanceDays };
     }
   }
 

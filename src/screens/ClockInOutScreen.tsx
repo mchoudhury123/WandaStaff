@@ -194,17 +194,16 @@ const ClockInOutScreen: React.FC<NavigationProps> = () => {
         businessLocation.lng
       );
       
-      // For testing: never show as outside range
-      // TODO: Re-enable distance check for production
-      // if (distance > 500) {
-      //   return { 
-      //     status: lastClockRecord.type === 'clock-in' 
-      //       ? `Clocked in (${Math.round(distance)}m from workplace)` 
-      //       : 'Outside work area', 
-      //     canClockIn: false,
-      //     isOutsideRange: true
-      //   };
-      // }
+      // Check if user is outside allowed range
+      if (distance > AppConstants.business.defaultClockRadiusMeters) {
+        return { 
+          status: lastClockRecord.type === 'clock-in' 
+            ? `Clocked in (${Math.round(distance)}m from workplace)` 
+            : 'Outside work area', 
+          canClockIn: false,
+          isOutsideRange: true
+        };
+      }
     }
     
     if (lastClockRecord.type === 'clock-in') {
@@ -281,7 +280,7 @@ const ClockInOutScreen: React.FC<NavigationProps> = () => {
             
             {currentStatus.isOutsideRange && (
               <Text style={styles.locationWarning}>
-                You must be within 500m of the workplace to clock in/out
+                You must be within {AppConstants.business.defaultClockRadiusMeters}m of the workplace to clock in/out
               </Text>
             )}
           </View>
@@ -336,7 +335,7 @@ const ClockInOutScreen: React.FC<NavigationProps> = () => {
             <Text style={styles.mapNote}>
               {Platform.OS === 'web' 
                 ? 'Location verification is simulated for web testing'
-                : 'You must be within 500m of the business location to clock in/out'
+                : `You must be within ${AppConstants.business.defaultClockRadiusMeters}m of the business location to clock in/out`
               }
             </Text>
           </Card.Content>

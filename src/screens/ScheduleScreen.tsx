@@ -344,7 +344,7 @@ const ScheduleScreen: React.FC<NavigationProps> = () => {
       if (!isWithinRange) {
         Alert.alert(
           'Location Required', 
-          'You must be within 500m of the business location to clock in/out.'
+          `You must be within ${AppConstants.business.defaultClockRadiusMeters}m of the business location to clock in/out.`
         );
         return;
       }
@@ -651,7 +651,7 @@ const ScheduleScreen: React.FC<NavigationProps> = () => {
                   {/* 500m Radius Circle around Business */}
                   <LeafletCircle
                     center={[business.location.lat, business.location.lng]}
-                    radius={500}
+                    radius={AppConstants.business.defaultClockRadiusMeters}
                     pathOptions={{
                       color: isWithinRange ? "#10B981" : "#EF4444",
                       weight: 2,
@@ -695,7 +695,7 @@ const ScheduleScreen: React.FC<NavigationProps> = () => {
                       latitude: business.location.lat,
                       longitude: business.location.lng,
                     }}
-                    radius={500}
+                    radius={AppConstants.business.defaultClockRadiusMeters}
                     strokeColor={isWithinRange ? "#10B981" : "#EF4444"}
                     strokeWidth={2}
                     fillColor={isWithinRange ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)"}
@@ -767,7 +767,7 @@ const ScheduleScreen: React.FC<NavigationProps> = () => {
                   styles.locationText,
                   { color: isWithinRange ? "#10B981" : "#EF4444" }
                 ]}>
-                  {isWithinRange ? "Within 500m range" : "Outside 500m range"}
+                  {isWithinRange ? `Within ${AppConstants.business.defaultClockRadiusMeters}m range` : `Outside ${AppConstants.business.defaultClockRadiusMeters}m range`}
                 </Text>
               </View>
             )}

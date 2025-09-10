@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StatusBar, Platform, Dimensions } from 'react-native';
 import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
 import { AuthProvider } from '@/components/common/AuthContext';
+import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
 import AppNavigator from '@/navigation/AppNavigator';
 
 const theme = {
@@ -54,7 +55,9 @@ const App: React.FC = () => {
         />
       )}
       <AuthProvider>
-        <AppNavigator />
+        <FeatureFlagsProvider>
+          <AppNavigator />
+        </FeatureFlagsProvider>
       </AuthProvider>
     </PaperProvider>
   );
