@@ -17,14 +17,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const appName = process.env.APP_NAME || 'WandaStaff';
   const appVersion = process.env.APP_VERSION || '1.0.0';
   
-  // Firebase configuration from environment variables
+  // Firebase configuration from environment variables (WANDA CRM defaults)
   const firebaseConfig = {
-    apiKey: process.env.FIREBASE_API_KEY || 'your-api-key',
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'your-project.firebaseapp.com',
-    projectId: process.env.FIREBASE_PROJECT_ID || 'your-project-id',
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'your-project.appspot.com',
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '123456789',
-    appId: process.env.FIREBASE_APP_ID || 'your-app-id'
+    apiKey: process.env.FIREBASE_API_KEY || 'AIzaSyAgFCCTja8jE8FgUJuPCm9jDV5z93pq55k',
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || 'nail-salon-crm.firebaseapp.com',
+    projectId: process.env.FIREBASE_PROJECT_ID || 'nail-salon-crm',
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'nail-salon-crm.firebasestorage.app',
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '1084934404328',
+    appId: process.env.FIREBASE_APP_ID || '1:1084934404328:web:17b0800ae64bc69ca3b15d'
   };
   
   // Business settings from environment variables

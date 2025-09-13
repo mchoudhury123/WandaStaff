@@ -11,15 +11,15 @@ import Constants from 'expo-constants';
 // Get values from Expo constants (set by app.config.ts)
 const expoExtra = Constants.expoConfig?.extra || {};
 
-// Environment variables with fallbacks from Expo config
+// Environment variables with fallbacks from Expo config (WANDA CRM defaults)
 const config = {
   // Firebase Configuration
-  FIREBASE_API_KEY: expoExtra.firebase?.apiKey || 'your-api-key',
-  FIREBASE_AUTH_DOMAIN: expoExtra.firebase?.authDomain || 'your-project.firebaseapp.com',
-  FIREBASE_PROJECT_ID: expoExtra.firebase?.projectId || 'your-project-id',
-  FIREBASE_STORAGE_BUCKET: expoExtra.firebase?.storageBucket || 'your-project.appspot.com',
-  FIREBASE_MESSAGING_SENDER_ID: expoExtra.firebase?.messagingSenderId || '123456789',
-  FIREBASE_APP_ID: expoExtra.firebase?.appId || 'your-app-id',
+  FIREBASE_API_KEY: expoExtra.firebase?.apiKey || 'AIzaSyAgFCCTja8jE8FgUJuPCm9jDV5z93pq55k',
+  FIREBASE_AUTH_DOMAIN: expoExtra.firebase?.authDomain || 'nail-salon-crm.firebaseapp.com',
+  FIREBASE_PROJECT_ID: expoExtra.firebase?.projectId || 'nail-salon-crm',
+  FIREBASE_STORAGE_BUCKET: expoExtra.firebase?.storageBucket || 'nail-salon-crm.firebasestorage.app',
+  FIREBASE_MESSAGING_SENDER_ID: expoExtra.firebase?.messagingSenderId || '1084934404328',
+  FIREBASE_APP_ID: expoExtra.firebase?.appId || '1:1084934404328:web:17b0800ae64bc69ca3b15d',
 
   // App Configuration
   APP_NAME: expoExtra.appName || 'WandaStaff',
@@ -91,14 +91,14 @@ export const validateConfig = (): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
   // Check Firebase configuration
-  if (config.FIREBASE_API_KEY === 'your-api-key') {
-    errors.push('FIREBASE_API_KEY is not configured');
+  if (!config.FIREBASE_API_KEY || config.FIREBASE_API_KEY.length < 10) {
+    errors.push('FIREBASE_API_KEY is not properly configured');
   }
-  if (config.FIREBASE_PROJECT_ID === 'your-project-id') {
-    errors.push('FIREBASE_PROJECT_ID is not configured');
+  if (!config.FIREBASE_PROJECT_ID || config.FIREBASE_PROJECT_ID.length < 3) {
+    errors.push('FIREBASE_PROJECT_ID is not properly configured');
   }
-  if (config.FIREBASE_AUTH_DOMAIN === 'your-project.firebaseapp.com') {
-    errors.push('FIREBASE_AUTH_DOMAIN is not configured');
+  if (!config.FIREBASE_AUTH_DOMAIN || !config.FIREBASE_AUTH_DOMAIN.includes('.firebaseapp.com')) {
+    errors.push('FIREBASE_AUTH_DOMAIN is not properly configured');
   }
 
   // Check business settings

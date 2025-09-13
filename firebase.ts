@@ -3,14 +3,14 @@ import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/aut
 import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// TODO: Replace with your actual Firebase config from your CRM
+// WANDA CRM Firebase Configuration
 const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id"
+  apiKey: "AIzaSyAgFCCTja8jE8FgUJuPCm9jDV5z93pq55k",
+  authDomain: "nail-salon-crm.firebaseapp.com",
+  projectId: "nail-salon-crm",
+  storageBucket: "nail-salon-crm.firebasestorage.app",
+  messagingSenderId: "1084934404328",
+  appId: "1:1084934404328:web:17b0800ae64bc69ca3b15d"
 };
 
 // Initialize Firebase
